@@ -1,92 +1,172 @@
 from tkinter import *
 from tkinter import colorchooser
-
+import math
+# Link del repo:
 class DrawingApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Figuras primitivas")
-        self.canvas = Canvas(self.master, width=800, height=400)
-        self.canvas.pack()
-        self.shape = None
-        self.start_x = 0
-        self.start_y = 0
+        self.master.geometry("800x600")  # Ancho y alto de la ventana
+        self.master.resizable(False, False)  # Hacer que la ventana no sea redimensionable
+        self.canvas = Canvas(self.master, width=500, height=600)
+        self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        self.shapes = []  # Lista para almacenar las figuras
         self.color = 'black'
         self.canvas.bind("<Button-1>", self.start_drawing)
-        self.canvas.bind("<B1-Motion>", self.draw)
+        self.canvas.bind("<ButtonRelease-1>", self.finalize_shape)
 
-        window_width = 800
-        window_height = 600
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        x_coordinate = (screen_width - window_width) // 2
-        y_coordinate = (screen_height - window_height) // 2
-        root.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")
+        # Contenedor para botones y lista de figuras
+        self.side_frame = Frame(self.master, width=200, height=600)
+        self.side_frame.pack_propagate(False)  # Evitar que el Frame se ajuste automáticamente al contenido
+        self.side_frame.pack(side=RIGHT, fill=BOTH)
+
+        # Lista de figuras
+        self.listbox_label = Label(self.side_frame, text="Lista de figuras")
+        self.listbox_label.pack()
+
+        self.listbox = Listbox(self.side_frame, width=30, selectmode=SINGLE)
+        self.listbox.pack(fill=BOTH, expand=True)
+        self.listbox.bind('<<ListboxSelect>>', self.on_listbox_select)
+
+        # Configuración del contenedor para los botones
+        self.button_frame = Frame(self.side_frame)
+        self.button_frame.pack(fill=BOTH)
+
+        shape_label = Label(self.button_frame, text="Figura:")
+        shape_label.pack()
+
+        self.shape_var = StringVar()
+        shape_options = OptionMenu(self.button_frame, self.shape_var, "Linea", "Cuadrado", "Triangulo", "Rectangulo")
+        shape_options.pack(fill=BOTH)
+
+        color_button = Button(self.button_frame, text="Seleccionar Color", command=self.choose_color)
+        color_button.pack(fill=BOTH)
+
+        scale_label = Label(self.button_frame, text="Aumentar tamaño:")
+        scale_label.pack()
+
+        self.scale_factor_entry = Entry(self.button_frame)
+        self.scale_factor_entry.pack(fill=BOTH)
+
+        scale_button = Button(self.button_frame, text="Aceptar", command=self.scale_shape)
+        scale_button.pack(fill=BOTH)
+
+        translate_label = Label(self.button_frame, text="Trasladar:")
+        translate_label.pack()
+
+        self.translate_x_entry = Entry(self.button_frame)
+        self.translate_x_entry.pack(fill=BOTH)
+
+        self.translate_y_entry = Entry(self.button_frame)
+        self.translate_y_entry.pack(fill=BOTH)
+
+        translate_button = Button(self.button_frame, text="Aceptar", command=self.translate_shape)
+        translate_button.pack(fill=BOTH)
+
+        rotate_label = Label(self.button_frame, text="Rotar (grados):")
+        rotate_label.pack()
+
+        self.rotate_angle_entry = Entry(self.button_frame)
+        self.rotate_angle_entry.pack(fill=BOTH)
+
+        rotate_button = Button(self.button_frame, text="Aceptar", command=self.rotate_shape)
+        rotate_button.pack(fill=BOTH)
 
     def start_drawing(self, event):
         self.start_x = event.x
         self.start_y = event.y
 
-    def draw(self, event):
-        if self.shape:
-            self.canvas.delete(self.shape)
-
-        shape_type = shape_var.get()
+    def finalize_shape(self, event):
+        shape_type = self.shape_var.get()
 
         if shape_type == "Linea":
-            self.shape = self.canvas.create_line(self.start_x, self.start_y, event.x, event.y, fill=self.color)
+            shape = self.canvas.create_line(self.start_x, self.start_y, event.x, event.y, fill=self.color)
         elif shape_type == "Cuadrado":
-            self.shape = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, fill=self.color)
+            shape = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, fill=self.color)
         elif shape_type == "Triangulo":
-            self.shape = self.canvas.create_polygon(self.start_x, self.start_y, event.x, event.y, self.start_x, event.y, fill=self.color)
+            shape = self.canvas.create_polygon(self.start_x, self.start_y, event.x, event.y, self.start_x, event.y, fill=self.color)
         elif shape_type == "Rectangulo":
-            self.shape = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, fill=self.color)
+            shape = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, fill=self.color)
+
+        shape_info = f"{shape_type}, Color: {self.color}, ID: {shape}"
+        self.listbox.insert(END, shape_info)
+
+        self.shapes.append(shape)  # Agregar la figura a la lista
 
     def scale_shape(self):
-        scale_factor = float(scale_factor_entry.get())
-        self.canvas.scale(self.shape, self.start_x, self.start_y, scale_factor, scale_factor)
+        selected_index = self.listbox.curselection()
+        if selected_index:
+            selected_shape = self.shapes[selected_index[0]]
+            scale_factor = float(self.scale_factor_entry.get())
+            self.canvas.scale(selected_shape, self.start_x, self.start_y, scale_factor, scale_factor)
 
     def translate_shape(self):
-        dx = int(translate_x_entry.get())
-        dy = int(translate_y_entry.get())
-        self.canvas.move(self.shape, dx, dy)
+        selected_index = self.listbox.curselection()
+        if selected_index:
+            selected_shape = self.shapes[selected_index[0]]
+            dx = int(self.translate_x_entry.get())
+            dy = int(self.translate_y_entry.get())
+            self.canvas.move(selected_shape, dx, dy)
+
+    def rotate_shape(self):
+        selected_index = self.listbox.curselection()
+        if selected_index:
+            selected_shape = self.shapes[selected_index[0]]
+            angle = float(self.rotate_angle_entry.get())
+            cx, cy = self.get_center(selected_shape)
+            self.rotate(selected_shape, cx, cy, angle)
 
     def choose_color(self):
         _, self.color = colorchooser.askcolor()
 
+    def on_listbox_select(self, event):
+        selected_index = self.listbox.curselection()
+        if selected_index:
+            selected_shape = self.shapes[selected_index[0]]
+            coords = self.canvas.coords(selected_shape)
+            self.start_x, self.start_y = coords[0], coords[1]
+
+    def get_center(self, shape):
+        bbox = self.canvas.bbox(shape)
+        cx = (bbox[0] + bbox[2]) / 2
+        cy = (bbox[1] + bbox[3]) / 2
+        return cx, cy
+
+    def rotate(self, shape, cx, cy, angle):
+        if self.canvas.type(shape) == "line":
+            coords = self.canvas.coords(shape)
+            x1, y1, x2, y2 = coords
+            x1_rotated, y1_rotated = self.rotate_point(x1, y1, cx, cy, angle)
+            x2_rotated, y2_rotated = self.rotate_point(x2, y2, cx, cy, angle)
+            self.canvas.coords(shape, x1_rotated, y1_rotated, x2_rotated, y2_rotated)
+        elif self.canvas.type(shape) == "rectangle":
+            coords = self.canvas.coords(shape)
+            x1, y1, x2, y2 = coords
+            x1_rotated, y1_rotated = self.rotate_point(x1, y1, cx, cy, angle)
+            x2_rotated, y2_rotated = self.rotate_point(x2, y2, cx, cy, angle)
+            self.canvas.coords(shape, x1_rotated, y1_rotated, x2_rotated, y2_rotated)
+        elif self.canvas.type(shape) == "polygon":
+            coords = self.canvas.coords(shape)
+            rotated_polygon = self.rotate_polygon(coords, cx, cy, angle)
+            self.canvas.coords(shape, *rotated_polygon)
+
+    def rotate_point(self, x, y, cx, cy, angle):
+        angle_rad = math.radians(angle)
+        x_rotated = cx + (x - cx) * math.cos(angle_rad) - (y - cy) * math.sin(angle_rad)
+        y_rotated = cy + (x - cx) * math.sin(angle_rad) + (y - cy) * math.cos(angle_rad)
+        return x_rotated, y_rotated
+
+    def rotate_polygon(self, coords, cx, cy, angle):
+        rotated_polygon = []
+        angle_rad = math.radians(angle)
+        for i in range(0, len(coords), 2):
+            x = coords[i]
+            y = coords[i + 1]
+            x_rotated = cx + (x - cx) * math.cos(angle_rad) - (y - cy) * math.sin(angle_rad)
+            y_rotated = cy + (x - cx) * math.sin(angle_rad) + (y - cy) * math.cos(angle_rad)
+            rotated_polygon.extend([x_rotated, y_rotated])
+        return rotated_polygon
+
 root = Tk()
-shape_var = StringVar()
-shape_var.set("Linea")
-
 app = DrawingApp(root)
-
-shape_label = Label(root, text="Figura:")
-shape_label.pack(side=LEFT)
-
-shape_options = OptionMenu(root, shape_var, "Linea", "Cuadrado", "Triangulo", "Rectangulo")
-shape_options.pack(side=LEFT)
-
-color_button = Button(root, text="Seleccionar Color", command=app.choose_color)
-color_button.pack(side=LEFT)
-
-scale_label = Label(root, text="Aumentar tamaño:")
-scale_label.pack(side=LEFT)
-
-scale_factor_entry = Entry(root)
-scale_factor_entry.pack(side=LEFT)
-
-scale_button = Button(root, text="Aceptar", command=app.scale_shape)
-scale_button.pack(side=LEFT)
-
-translate_label = Label(root, text="Trasladar:")
-translate_label.pack(side=LEFT)
-
-translate_x_entry = Entry(root)
-translate_x_entry.pack(side=LEFT)
-
-translate_y_entry = Entry(root)
-translate_y_entry.pack(side=LEFT)
-
-translate_button = Button(root, text="Aceptar", command=app.translate_shape)
-translate_button.pack(side=LEFT)
-
 root.mainloop()
