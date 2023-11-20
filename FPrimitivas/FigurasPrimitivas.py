@@ -1,13 +1,13 @@
 from tkinter import *
 from tkinter import colorchooser
 import math
-# Link del repo:
+
 class DrawingApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Figuras primitivas")
-        self.master.geometry("800x600")  # Ancho y alto de la ventana
-        self.master.resizable(False, False)  # Hacer que la ventana no sea redimensionable
+        self.master.geometry("800x600")
+        self.master.resizable(False, False)
         self.canvas = Canvas(self.master, width=500, height=600)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
         self.shapes = []  # Lista para almacenar las figuras
@@ -82,7 +82,12 @@ class DrawingApp:
         if shape_type == "Linea":
             shape = self.canvas.create_line(self.start_x, self.start_y, event.x, event.y, fill=self.color)
         elif shape_type == "Cuadrado":
-            shape = self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, fill=self.color)
+            side_length = min(abs(event.x - self.start_x), abs(event.y - self.start_y))
+            if event.x < self.start_x:
+                self.start_x = event.x
+            if event.y < self.start_y:
+                self.start_y = event.y
+            shape = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x + side_length, self.start_y + side_length, fill=self.color)
         elif shape_type == "Triangulo":
             shape = self.canvas.create_polygon(self.start_x, self.start_y, event.x, event.y, self.start_x, event.y, fill=self.color)
         elif shape_type == "Rectangulo":
@@ -170,3 +175,4 @@ class DrawingApp:
 root = Tk()
 app = DrawingApp(root)
 root.mainloop()
+
