@@ -4,7 +4,7 @@ import logging as log
 import datetime as dt
 from time import sleep
 
-cascPath = "haarcascade_frontalface_alt.xml"
+cascPath = "cascade.xml"
 faceCascade = cv2.CascadeClassifier(cascPath)
 log.basicConfig(filename='webcam.log', level=log.INFO)
 
@@ -22,11 +22,15 @@ while True:
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+
     faces = faceCascade.detectMultiScale(
         gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30)
+        #scaleFactor=1.1,
+        scaleFactor=5,
+        #minNeighbors=5,
+        minNeighbors=91,
+        #minSize=(30, 30)
+        minSize=(70, 78)
     )
 
     # Draw a rectangle around the faces
